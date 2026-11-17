@@ -39,7 +39,6 @@ function resizeTwinkles() {
 }
 
 function frameFor(twinkle, now) {
-  if (reduceMotion) return 3;
   const cycle = (now / 1000) / twinkle.period + twinkle.phase;
   const frame = Math.floor(cycle * 8) % 8;
   return frame < 0 ? frame + 8 : frame;
@@ -86,7 +85,7 @@ function tick(now) {
   scrollY = window.scrollY;
   applyParallax(now);
   drawTwinkles(now);
-  if (!reduceMotion) requestAnimationFrame(tick);
+  requestAnimationFrame(tick);
 }
 
 window.addEventListener("resize", () => {
@@ -99,13 +98,25 @@ window.addEventListener("resize", () => {
 
 document.addEventListener("visibilitychange", () => {
   running = document.visibilityState !== "hidden";
-  if (running && !reduceMotion) requestAnimationFrame(tick);
+  if (running) requestAnimationFrame(tick);
 });
 
 fetch(assetUrl("assets/sky/sky_twinkles.json"))
   .then((res) => res.json())
   .then((data) => {
     twinkles = data.twinkles || [];
+    // Extra seeded twinkles so the sky visibly shimmers (deterministic, same every load).
+    let seed = 1337;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    for (let i = 0; i < 64; i += 1) {
+      twinkles.push({
+        x: Math.floor(rnd() * 632) + 4,
+        y: Math.floor(rnd() * 352) + 4,
+        tint: Math.floor(rnd() * 5),
+        period: 1.8 + rnd() * 2.6,
+        phase: rnd(),
+      });
+    }
     strip = new Image();
     strip.onload = () => {
       if (reduceMotion) {
@@ -117,11 +128,8 @@ fetch(assetUrl("assets/sky/sky_twinkles.json"))
   })
   .catch(() => {});
 
-if (reduceMotion) {
-  applyParallax(0);
-} else {
-  requestAnimationFrame(tick);
-}
+if (reduceMotion) applyParallax(0);
+requestAnimationFrame(tick);
 
 const navLinks = [...document.querySelectorAll("[data-nav]")];
 const sections = navLinks
