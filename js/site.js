@@ -283,82 +283,85 @@ const fieldError = document.getElementById("email-error");
 const submitBtn = document.getElementById("alpha-submit");
 const retryBtn = document.getElementById("alpha-retry");
 
-function isValidEmail(value) {
-  const email = value.trim();
-  if (email.length < 3 || email.length > 254) return false;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
+if (form && emailInput && status && fieldError && submitBtn && retryBtn) {
 
-function setFormState(state) {
-  form.dataset.state = state;
-  submitBtn.disabled = state === "submitting";
-  emailInput.disabled = state === "submitting" || state === "success";
-  retryBtn.hidden = state !== "error";
-  if (state === "idle" || state === "full") submitBtn.textContent = "Request Alpha Access";
-  if (state === "submitting") submitBtn.textContent = "Sending…";
-  if (state === "success") submitBtn.textContent = "Request Alpha Access";
-}
+  function isValidEmail(value) {
+    const email = value.trim();
+    if (email.length < 3 || email.length > 254) return false;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
 
-function showInvalidEmail() {
-  setFormState("idle");
-  fieldError.hidden = false;
-  fieldError.textContent = "Enter a valid email.";
-  emailInput.setAttribute("aria-invalid", "true");
-  emailInput.focus();
-}
+  function setFormState(state) {
+    form.dataset.state = state;
+    submitBtn.disabled = state === "submitting";
+    emailInput.disabled = state === "submitting" || state === "success";
+    retryBtn.hidden = state !== "error";
+    if (state === "idle" || state === "full") submitBtn.textContent = "Request Alpha Access";
+    if (state === "submitting") submitBtn.textContent = "Sending…";
+    if (state === "success") submitBtn.textContent = "Request Alpha Access";
+  }
 
-emailInput.addEventListener("input", () => {
-  fieldError.hidden = true;
-  emailInput.removeAttribute("aria-invalid");
-  if (form.dataset.state === "error" || form.dataset.state === "full") {
-    status.textContent = "";
+  function showInvalidEmail() {
     setFormState("idle");
-  }
-});
-
-retryBtn.addEventListener("click", () => {
-  form.requestSubmit();
-});
-
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  if (form.dataset.state === "submitting" || form.dataset.state === "success") return;
-
-  const email = emailInput.value.trim();
-  const data = new FormData(form);
-  const source = String(data.get("source") || "site");
-
-  if (!isValidEmail(email)) {
-    showInvalidEmail();
-    return;
+    fieldError.hidden = false;
+    fieldError.textContent = "Enter a valid email.";
+    emailInput.setAttribute("aria-invalid", "true");
+    emailInput.focus();
   }
 
-  fieldError.hidden = true;
-  emailInput.removeAttribute("aria-invalid");
-  status.textContent = "";
-  setFormState("submitting");
-
-  try {
-    const result = await joinAlphaWaitlist(email, source);
-    if (result && result.ok === true) {
-      setFormState("success");
-      status.textContent = "You're on the list";
-      return;
+  emailInput.addEventListener("input", () => {
+    fieldError.hidden = true;
+    emailInput.removeAttribute("aria-invalid");
+    if (form.dataset.state === "error" || form.dataset.state === "full") {
+      status.textContent = "";
+      setFormState("idle");
     }
-    if (result && result.ok === false && result.error === "invalid_email") {
+  });
+
+  retryBtn.addEventListener("click", () => {
+    form.requestSubmit();
+  });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (form.dataset.state === "submitting" || form.dataset.state === "success") return;
+
+    const email = emailInput.value.trim();
+    const data = new FormData(form);
+    const source = String(data.get("source") || "site");
+
+    if (!isValidEmail(email)) {
       showInvalidEmail();
       return;
     }
-    if (result && result.ok === false && result.error === "full") {
-      setFormState("full");
-      status.textContent = "Alpha is full right now, try again soon";
-      return;
-    }
-  } catch (_) {
-    /* generic error below */
-  }
 
-  setFormState("error");
-  status.textContent = "Something went wrong.";
-  retryBtn.focus();
-});
+    fieldError.hidden = true;
+    emailInput.removeAttribute("aria-invalid");
+    status.textContent = "";
+    setFormState("submitting");
+
+    try {
+      const result = await joinAlphaWaitlist(email, source);
+      if (result && result.ok === true) {
+        setFormState("success");
+        status.textContent = "You're on the list";
+        return;
+      }
+      if (result && result.ok === false && result.error === "invalid_email") {
+        showInvalidEmail();
+        return;
+      }
+      if (result && result.ok === false && result.error === "full") {
+        setFormState("full");
+        status.textContent = "Alpha is full right now, try again soon";
+        return;
+      }
+    } catch (_) {
+      /* generic error below */
+    }
+
+    setFormState("error");
+    status.textContent = "Something went wrong.";
+    retryBtn.focus();
+  });
+}
