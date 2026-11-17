@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SABLE — Free to play. No pay-to-win.</title>
+  <meta name="description" content="SABLE is a free-to-play 2D top-down pixel-art dark-fantasy MMO by Sable Studios. Closed alpha. No pay-to-win. Nobody can buy an advantage." />
+  <meta name="theme-color" content="#0b0f10" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0f10'/%3E%3Crect x='6' y='2' width='4' height='4' fill='%23e6c98a'/%3E%3Crect x='4' y='6' width='8' height='4' fill='%23e6c98a'/%3E%3Crect x='6' y='10' width='4' height='4' fill='%23e6c98a'/%3E%3C/svg%3E" />
+  <link rel="preload" href="assets/fonts/Alegreya-Variable.ttf" as="font" type="font/ttf" crossorigin />
+  <style>
+    @font-face {
+      font-family: "Alegreya";
+      src: url("assets/fonts/Alegreya-Variable.ttf") format("truetype");
+      font-weight: 400 900;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --void: #0b0f10;
+      --ink: #111d21;
+      --parchment: #e5dfce;
+      --parchment-dim: rgba(229, 223, 206, 0.74);
+      --plum: #211d32;
+      --plum-2: #352848;
+      --plum-3: #4c376a;
+      --teal: #1f3d3a;
+      --teal-2: #2f6560;
+      --gold: #e6c98a;
+      --gold-2: #f3e2b8;
+      --gold-ink: #1a140c;
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      background: var(--void);
+      color: var(--parchment);
+      font-family: Alegreya, Palatino, "Palatino Linotype", Georgia, serif;
+      font-size: 1.125rem;
+      font-weight: 460;
+      line-height: 1.55;
+    }
+
+    img, canvas, video { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+    a { color: var(--gold); }
+    a:hover { color: var(--gold-2); }
+
+    :focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 3px;
+    }
+
+    .skip {
+      position: absolute;
+      left: 1rem;
+      top: -4rem;
+      background: var(--gold);
+      color: var(--gold-ink);
+      padding: 0.5rem 0.8rem;
+      z-index: 10;
+    }
+    .skip:focus { top: 0.5rem; }
+
+    .sky {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background: var(--void);
+      overflow: hidden;
+    }
+
+    .layer {
+      position: absolute;
+      inset: 0;
+      background-repeat: repeat;
+      background-size: 1280px 720px;
+    }
+
+    .layer-nebula { background-image: url("assets/sky/sky_nebula.png"); z-index: 1; }
+    .layer-dim { background-image: url("assets/sky/sky_stars_dim.png"); z-index: 2; }
+    .layer-bright { background-image: url("assets/sky/sky_stars_bright.png"); z-index: 3; }
+    .layer-dust { background-image: url("assets/sky/sky_dust.png"); z-index: 4; }
+
+    #twinkles {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 5;
+    }
+
+    .vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse at center, transparent 0%, transparent 42%, rgba(11, 15, 16, 0.55) 100%),
+        linear-gradient(180deg, rgba(11, 15, 16, 0.45), transparent 18%, transparent 70%, rgba(11, 15, 16, 0.55));
+    }
+
+    .constellation {
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      padding: 0.55rem 0.75rem 0.85rem;
+      background: linear-gradient(180deg, rgba(11, 15, 16, 0.94) 0%, rgba(11, 15, 16, 0.78) 72%, transparent);
+    }
+
+    .constellation ol {
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.25rem;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0.35rem 0.25rem 0;
+      position: relative;
+      overflow-x: auto;
+    }
+
+    .constellation ol::before {
+      content: "";
+      position: absolute;
+      left: 1.2rem;
+      right: 1.2rem;
+      top: 0.85rem;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--plum-3), var(--teal-2), var(--plum-3), transparent);
+    }
+
+    .constellation a {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      min-width: 4.4rem;
+      padding-top: 0.15rem;
+      color: rgba(229, 223, 206, 0.48);
+      text-decoration: none;
+      font-size: 0.68rem;
+      font-weight: 650;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .star {
+      width: 9px;
+      height: 9px;
+      background: var(--plum-2);
+      box-shadow: 0 0 0 1px var(--plum-3);
+      transform: rotate(45deg);
+    }
+
+    .constellation a.is-lit { color: var(--parchment); }
+    .constellation a.is-lit .star {
+      background: var(--parchment);
+      box-shadow: 0 0 8px rgba(229, 223, 206, 0.55);
+    }
+    .constellation a.is-you { color: var(--gold); }
+    .constellation a.is-you .star {
+      background: var(--gold);
+      box-shadow: 0 0 10px rgba(230, 201, 138, 0.85);
+    }
+
+    main { position: relative; z-index: 2; }
+
+    section { scroll-margin-top: 4.75rem; }
+
+    .wrap { width: min(1040px, calc(100% - 2rem)); margin: 0 auto; }
+    .narrow { width: min(740px, 100%); margin: 0 auto; }
+
+    .hero {
+      position: relative;
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
+      padding: 4.5rem 0 11rem;
+    }
+
+    .hero-copy {
+      padding: 0 1rem;
+    }
+
+    .logo {
+      width: min(92vw, 575px);
+      height: auto;
+      margin: 0 auto 1rem;
+      display: block;
+    }
+
+    .badges {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 0 0 1.1rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 2rem;
+      padding: 0.2rem 0.75rem;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      background: rgba(11, 15, 16, 0.55);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .badge-alpha {
+      border-color: var(--plum-3);
+      color: var(--parchment);
+      background: rgba(33, 29, 50, 0.72);
+    }
+
+    h1, h2, h3 { font-weight: 650; letter-spacing: -0.02em; line-height: 1.08; }
+
+    h1 {
+      margin: 0 auto 0.8rem;
+      max-width: 14ch;
+      font-size: clamp(2.5rem, 7vw, 4.75rem);
+    }
+
+    .lede {
+      margin: 0 auto 0.7rem;
+      max-width: 40rem;
+      font-size: clamp(1.2rem, 2.4vw, 1.55rem);
+      color: var(--parchment);
+    }
+
+    .tag {
+      margin: 0 auto 1.4rem;
+      max-width: 38rem;
+      color: var(--parchment-dim);
+    }
+
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0.7rem 1.25rem;
+      background: var(--gold);
+      color: var(--gold-ink);
+      font-family: inherit;
+      font-size: 1.05rem;
+      font-weight: 700;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    .cta:hover { background: var(--gold-2); color: var(--gold-ink); }
+    .cta:disabled { opacity: 0.6; cursor: progress; }
+
+    .fine {
+      margin: 0.8rem 0 0;
+      color: var(--parchment-dim);
+      font-size: 0.95rem;
+    }
+
+    .horizon {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 192px;
+      background: url("assets/sky/sky_horizon.png") center bottom / 1280px 192px repeat-x;
+      pointer-events: none;
+    }
+
+    .band {
+      padding: 4.25rem 0 4.5rem;
+      background: linear-gradient(180deg, rgba(11, 15, 16, 0.18), rgba(11, 15, 16, 0.78) 10%, rgba(17, 29, 33, 0.88) 50%, rgba(11, 15, 16, 0.78) 90%, rgba(11, 15, 16, 0.25));
+    }
+
+    .rule {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 0 0 1rem;
+      color: var(--plum-3);
+    }
+
+    .rule::before, .rule::after {
+      content: "";
+      height: 1px;
+      flex: 1;
+      background: linear-gradient(90deg, transparent, var(--plum-3), var(--teal-2));
+    }
+    .rule::after { background: linear-gradient(90deg, var(--teal-2), var(--plum-3), transparent); }
+
+    .rule .star {
+      flex: none;
+      background: var(--plum-2);
+    }
+
+    .is-lit .rule .star {
+      background: var(--parchment);
+      box-shadow: 0 0 8px rgba(229, 223, 206, 0.45);
+    }
+
+    .kicker {
+      margin: 0 0 0.4rem;
+      color: var(--gold);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h2 { margin: 0 0 0.8rem; font-size: clamp(2rem, 4.5vw, 3.3rem); max-width: 18ch; }
+    .center h2, .hero h1 { margin-left: auto; margin-right: auto; }
+    .center { text-align: center; }
+    .center h2 { max-width: none; }
+
+    .prose p { margin: 0 0 0.9rem; color: var(--parchment-dim); }
+    .prose p strong, .feature strong { color: var(--parchment); font-weight: 650; }
+
+    .features, .pledge-grid {
+      display: grid;
+      gap: 0.85rem;
+      margin-top: 1.5rem;
+    }
+
+    .feature, .pledge-card {
+      margin: 0;
+      padding: 1rem 1.05rem 1.1rem;
+      background: rgba(33, 29, 50, 0.62);
+      border: 1px solid rgba(76, 55, 106, 0.5);
+    }
+
+    .feature h3, .pledge-card h3 {
+      margin: 0 0 0.35rem;
+      font-size: 1.35rem;
+    }
+
+    .feature p, .pledge-card p { margin: 0; color: var(--parchment-dim); }
+
+    .schools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem 0.7rem;
+      margin: 1.4rem 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .schools li {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--parchment);
+      font-size: 1rem;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      transform: rotate(45deg);
+      flex: none;
+    }
+
+    .gallery {
+      display: grid;
+      gap: 0.9rem;
+      margin-top: 1.4rem;
+    }
+
+    figure { margin: 0; background: rgba(11, 15, 16, 0.72); border: 1px solid rgba(76, 55, 106, 0.5); }
+
+    .shot {
+      display: block;
+      width: 100%;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      cursor: zoom-in;
+    }
+
+    .shot img { display: block; width: 100%; height: auto; }
+
+    figcaption {
+      padding: 0.6rem 0.75rem 0.75rem;
+      color: var(--parchment-dim);
+      font-size: 1rem;
+    }
+
+    figcaption strong { color: var(--parchment); font-weight: 650; }
+
+    .sky-stage {
+      position: relative;
+      margin-top: 1.3rem;
+      background: rgba(11, 15, 16, 0.45);
+      border: 1px solid rgba(76, 55, 106, 0.6);
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+    }
+
+    #skill-sky, #skill-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: transparent;
+    }
+
+    .pledge h2 { max-width: 16ch; }
+
+    .alpha-form {
+      margin-top: 1.6rem;
+      padding: 1.1rem;
+      background: rgba(17, 29, 33, 0.78);
+      border: 1px solid rgba(47, 101, 96, 0.7);
+    }
+
+    .alpha-form label {
+      display: block;
+      margin-bottom: 0.4rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .alpha-form input[type="email"] {
+      width: 100%;
+      min-height: 48px;
+      padding: 0.55rem 0.75rem;
+      border: 1px solid var(--plum-3);
+      background: var(--void);
+      color: var(--parchment);
+      font: inherit;
+      font-size: 1.1rem;
+    }
+
+    .field-error { margin: 0.45rem 0 0; color: #e7b2a8; }
+
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      align-items: center;
+      margin-top: 0.85rem;
+    }
+
+    .form-status {
+      min-height: 1.4em;
+      margin: 0.85rem 0 0;
+      font-size: 1.35rem;
+      font-weight: 650;
+    }
+
+    .alpha-form[data-state="success"] .fields,
+    .alpha-form[data-state="success"] .form-row { display: none; }
+
+    .alpha-form[data-state="success"] .form-status { color: var(--gold); font-size: clamp(1.6rem, 3vw, 2.1rem); }
+
+    .alpha-form[data-state="full"] .form-status,
+    .alpha-form[data-state="error"] .form-status { color: var(--parchment); font-size: 1.25rem; }
+
+    #alpha-retry { margin-top: 0.85rem; }
+    #alpha-retry[hidden] { display: none; }
+
+    .faq { margin-top: 0.4rem; }
+
+    details {
+      border-top: 1px solid rgba(76, 55, 106, 0.55);
+      padding: 0.85rem 0;
+    }
+    details:last-of-type { border-bottom: 1px solid rgba(76, 55, 106, 0.55); }
+
+    summary {
+      cursor: pointer;
+      font-weight: 650;
+      font-size: 1.2rem;
+    }
+
+    details p { margin: 0.55rem 0 0.2rem; color: var(--parchment-dim); }
+
+    footer {
+      position: relative;
+      z-index: 2;
+      padding: 2.2rem 1rem 3rem;
+      text-align: center;
+      color: var(--parchment-dim);
+    }
+
+    footer p { margin: 0.3rem 0; }
+    footer .mark { color: var(--parchment); font-size: 1.15rem; }
+
+    dialog {
+      width: min(960px, calc(100vw - 1.5rem));
+      padding: 0;
+      border: 1px solid var(--plum-3);
+      background: var(--void);
+      color: var(--parchment);
+    }
+
+    dialog::backdrop { background: rgba(11, 15, 16, 0.82); }
+
+    dialog img { display: block; width: 100%; height: auto; }
+
+    dialog form { display: flex; justify-content: flex-end; padding: 0.4rem; }
+
+    dialog button {
+      min-height: 44px;
+      padding: 0.3rem 0.8rem;
+      background: transparent;
+      color: var(--parchment);
+      border: 1px solid var(--plum-3);
+      font: inherit;
+      cursor: pointer;
+    }
+
+    @media (min-width: 720px) {
+      .features { grid-template-columns: 1fr 1fr; }
+      .gallery { grid-template-columns: 1fr 1fr; }
+      .pledge-grid { grid-template-columns: repeat(3, 1fr); }
+      .form-row input[type="email"] { max-width: none; }
+      .alpha-form .fields input { max-width: 100%; }
+    }
+
+    @media (min-width: 1040px) {
+      .gallery { grid-template-columns: 1fr 1fr 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .constellation a { min-width: 3.6rem; letter-spacing: 0.08em; font-size: 0.62rem; }
+      .hero { padding: 4.25rem 0 8.5rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      * { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#top">Skip to content</a>
+
+  <div class="sky" aria-hidden="true">
+    <div class="layer layer-nebula"></div>
+    <div class="layer layer-dim"></div>
+    <div class="layer layer-bright"></div>
+    <div class="layer layer-dust"></div>
+    <canvas id="twinkles"></canvas>
+  </div>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <header class="constellation">
+    <nav aria-label="On this page">
+      <ol>
+        <li><a href="#top" data-nav="top"><span class="star"></span><span>Sable</span></a></li>
+        <li><a href="#world" data-nav="world"><span class="star"></span><span>World</span></a></li>
+        <li><a href="#scenes" data-nav="scenes"><span class="star"></span><span>Scenes</span></a></li>
+        <li><a href="#sky" data-nav="sky"><span class="star"></span><span>Sky</span></a></li>
+        <li><a href="#pledge" data-nav="pledge"><span class="star"></span><span>Free</span></a></li>
+        <li><a href="#faq" data-nav="faq"><span class="star"></span><span>FAQ</span></a></li>
+      </ol>
+    </nav>
+  </header>
+
+  <main>
+    <section id="top" class="hero">
+      <div class="hero-copy">
+        <img class="logo" src="assets/title_logo.png" width="1150" height="240" alt="SABLE" />
+        <div class="badges">
+          <span class="badge">Free to play</span>
+          <span class="badge badge-alpha">Closed alpha</span>
+        </div>
+        <h1>Free to play. No pay-to-win.</h1>
+        <p class="lede">Nobody can buy an advantage. Anything sold is cosmetic&nbsp;only.</p>
+        <p class="tag">A 2D top-down pixel-art dark-fantasy MMO from Sable Studios. Overhead days, moody 16-bit nights. Made in Godot.</p>
+        <a class="cta" href="#access">Request Alpha Access</a>
+        <p class="fine">Closed alpha. No store page on this site.</p>
+      </div>
+      <div class="horizon" role="img" aria-label="Treeline under the skill sky"></div>
+    </section>
+
+    <section id="world" class="band">
+      <div class="wrap">
+        <div class="rule" aria-hidden="true"><span class="star"></span></div>
+        <p class="kicker">What SABLE is</p>
+        <h2>An overhead world, after dark.</h2>
+        <div class="prose narrow" style="margin-left:0">
+          <p>SABLE is free to play. It is a dark-fantasy MMO seen from above, drawn in pixel art: the pace of a life in a small town, and the weather of a moodier 16-bit night. Other players are in the same world. Sable Studios is building it in Godot.</p>
+        </div>
+        <div class="features">
+          <article class="feature">
+            <h3>Twelve schools of the Veil</h3>
+            <p>The skill sky is a constellation. Twelve schools, stars you light as you learn, in the manner of a Skyrim skill tree hung in a real night sky.</p>
+          </article>
+          <article class="feature">
+            <h3>A spell that opens the sky</h3>
+            <p>Cast a space spell and the world dissolves into that sky. The map you were standing on becomes the chart of stars.</p>
+          </article>
+          <article class="feature">
+            <h3>Friends as constellations</h3>
+            <p>People you travel with take a place among the stars. Company is something you can look up and find.</p>
+          </article>
+          <article class="feature">
+            <h3>Dark nights, torchlight</h3>
+            <p>Night is actually dark. What you can see is what the torch, the lantern, and the town windows give you.</p>
+          </article>
+        </div>
+        <ul class="schools" aria-label="The twelve schools of the Veil">
+          <li><span class="dot" style="background:#e0833a"></span>Pyromancy</li>
+          <li><span class="dot" style="background:#6fb3c4"></span>Cryomancy</li>
+          <li><span class="dot" style="background:#7f93c8"></span>Stormcalling</li>
+          <li><span class="dot" style="background:#a3855d"></span>Geomancy</li>
+          <li><span class="dot" style="background:#4f8fc9"></span>Hydromancy</li>
+          <li><span class="dot" style="background:#6f9a52"></span>Verdancy</li>
+          <li><span class="dot" style="background:#b84861"></span>Vitalism</li>
+          <li><span class="dot" style="background:#4f9a6a"></span>Necromancy</li>
+          <li><span class="dot" style="background:#8c64b6"></span>Hexcraft</li>
+          <li><span class="dot" style="background:#ac9b75"></span>Divination</li>
+          <li><span class="dot" style="background:#4f9a8a"></span>Transmutation</li>
+          <li><span class="dot" style="background:#b04aa8"></span>Conjuration</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="scenes" class="band">
+      <div class="wrap">
+        <div class="rule" aria-hidden="true"><span class="star"></span></div>
+        <p class="kicker">Screenshots</p>
+        <h2>Places in the world.</h2>
+        <p class="tag" style="margin-left:0">Pixel art from SABLE, shown nearest-neighbor. No filters, no blur.</p>
+        <div class="gallery">
+          <figure>
+            <button class="shot" type="button" data-full="assets/scenes/gloamwood.webp">
+              <img src="assets/scenes/gloamwood.webp" width="1280" height="720" alt="A cloaked figure with a lantern on a stone path through a dark pine valley and ruined arches." />
+            </button>
+            <figcaption><strong>Gloamwood.</strong> A lantern on the ruin road.</figcaption>
+          </figure>
+          <figure>
+            <button class="shot" type="button" data-full="assets/scenes/cinderwatch.webp">
+              <img src="assets/scenes/cinderwatch.webp" width="1280" height="720" alt="A dusk town square with a stone well, market stalls, and warm windows." />
+            </button>
+            <figcaption><strong>Cinderwatch.</strong> The square at dusk.</figcaption>
+          </figure>
+          <figure>
+            <button class="shot" type="button" data-full="assets/scenes/dawn.webp">
+              <img src="assets/scenes/dawn.webp" width="1280" height="720" alt="A figure in a red cloak walking toward a mossy standing stone between huge trees at sunrise." />
+            </button>
+            <figcaption><strong>Dawn.</strong> The path to the standing stone.</figcaption>
+          </figure>
+          <figure>
+            <button class="shot" type="button" data-full="assets/scenes/marsh.webp">
+              <img src="assets/scenes/marsh.webp" width="1280" height="720" alt="A moonlit marsh with a wooden walkway, a hanging lantern, and a ruined arch." />
+            </button>
+            <figcaption><strong>Marsh.</strong> Moon over the walk.</figcaption>
+          </figure>
+          <figure>
+            <button class="shot" type="button" data-full="assets/scenes/mine.webp">
+              <img src="assets/scenes/mine.webp" width="1280" height="720" alt="A cavern mine with a lantern, crates, and purple crystals along a stone path." />
+            </button>
+            <figcaption><strong>Mine.</strong> Lantern in the crystal dark.</figcaption>
+          </figure>
+          <figure>
+            <button class="shot" type="button" data-full="assets/scenes/storm.webp">
+              <img src="assets/scenes/storm.webp" width="1280" height="720" alt="A timber hall with candles and a window looking out on rain and a distant lit keep." />
+            </button>
+            <figcaption><strong>Storm.</strong> Rain on the hall window.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="sky" class="band">
+      <div class="wrap">
+        <div class="rule" aria-hidden="true"><span class="star"></span></div>
+        <p class="kicker">The skill sky</p>
+        <h2>Learn by lighting stars.</h2>
+        <p class="tag" style="margin-left:0">Twelve schools hang around a gold lodestar. Cast into the sky, and the world you were walking dissolves into this chart. The film loops here. If it cannot play, the same chart is drawn in its place.</p>
+        <div class="sky-stage">
+          <canvas id="skill-sky" width="1280" height="720" aria-label="Constellation skill sky. Twelve schools around the lodestar Magelight."></canvas>
+          <video id="skill-video" autoplay muted loop playsinline hidden>
+            <source src="assets/skill_sky_full.mp4" type="video/mp4" />
+          </video>
+        </div>
+      </div>
+    </section>
+
+    <section id="pledge" class="band">
+      <div class="wrap">
+        <div class="rule" aria-hidden="true"><span class="star"></span></div>
+        <p class="kicker">Fair play</p>
+        <h2>Free. Forever. No advantage for sale.</h2>
+        <p class="lede" style="margin-left:0">SABLE is free to play. That does not change after alpha. Nobody can buy an advantage.</p>
+        <div class="pledge-grid">
+          <article class="pledge-card">
+            <h3>Free to play</h3>
+            <p>The game is free. Closed alpha now. Free after alpha. Paying is never the way in.</p>
+          </article>
+          <article class="pledge-card">
+            <h3>No advantage for sale</h3>
+            <p>Power, levels, gear, and progress are not on offer. The player beside you cannot be bought past.</p>
+          </article>
+          <article class="pledge-card">
+            <h3>Cosmetics only</h3>
+            <p>If something is sold, it changes how you look. It does not change what you can do.</p>
+          </article>
+        </div>
+
+        <div class="alpha-form" id="access">
+          <h3 style="margin:0 0 0.35rem; font-size:1.6rem;">Request Alpha Access</h3>
+          <p class="tag" style="margin:0 0 0.9rem;">One email. SABLE is in closed alpha. This page does not link to a store.</p>
+          <form id="alpha-form" data-state="idle" novalidate>
+            <div class="fields">
+              <label for="email">Email</label>
+              <input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" required placeholder="you@domain.com" aria-describedby="email-error" />
+              <input type="hidden" name="source" value="site" />
+              <p id="email-error" class="field-error" hidden>Enter a valid email.</p>
+            </div>
+            <div class="form-row">
+              <button class="cta" id="alpha-submit" type="submit">Request Alpha Access</button>
+            </div>
+            <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
+            <button class="cta" id="alpha-retry" type="button" hidden>Try again</button>
+          </form>
+          <noscript><p>Requesting access from this page needs JavaScript.</p></noscript>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="band">
+      <div class="wrap narrow">
+        <div class="rule" aria-hidden="true"><span class="star"></span></div>
+        <p class="kicker">FAQ</p>
+        <h2>Questions worth a straight answer.</h2>
+        <div class="faq">
+          <details>
+            <summary>How do I get into the alpha?</summary>
+            <p>SABLE is in closed alpha. Use Request Alpha Access and leave an email. That is the door. There is no date, wave size, or tester count published here.</p>
+          </details>
+          <details>
+            <summary>Will it stay free after alpha?</summary>
+            <p>Yes. Free to play, after alpha the same as during it. Nobody can buy an advantage. Anything sold is cosmetic only.</p>
+          </details>
+          <details>
+            <summary>Is there pay-to-win?</summary>
+            <p>No. An advantage is not for sale. Spending does not make the next player weaker, and it does not make you stronger.</p>
+          </details>
+          <details>
+            <summary>What can be bought?</summary>
+            <p>Cosmetics only. Nothing that changes what a character can do, how far they are, or what they can reach.</p>
+          </details>
+          <details>
+            <summary>What is SABLE?</summary>
+            <p>A free-to-play 2D top-down pixel-art dark-fantasy MMO by Sable Studios, made in Godot. Overhead, shared, and dark when the sun goes down.</p>
+          </details>
+          <details>
+            <summary>Where is the download?</summary>
+            <p>There is no public store page and no public download linked from here. Closed alpha access starts with the form on this page.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p class="mark">SABLE</p>
+    <p>Free to play. No pay-to-win. Closed alpha.</p>
+    <p><a href="https://x.com/sabledept">@sabledept</a></p>
+    <p>© Sable Studios. Made in Godot.</p>
+  </footer>
+
+  <dialog id="lightbox">
+    <form method="dialog"><button type="submit">Close</button></form>
+    <img id="lightbox-img" alt="" />
+  </dialog>
+
+  <script type="module" src="js/site.js"></script>
+</body>
+</html>
