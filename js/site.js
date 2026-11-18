@@ -1,8 +1,9 @@
 import { joinAlphaWaitlist } from "./waitlist.js";
 
-// Netcode will replace this with the live status endpoint.
-// Expected JSON: { "online": true, "players": 12 }
-const STATUS_URL = "";
+// Netcode sets this to the game server host (no scheme, no path), e.g. "example.sslip.io".
+// GET https://<host>/status -> {"online":true,"players":3,"cap":64,"updated":<unix seconds>,...}
+const STATUS_HOST = "";
+const STATUS_URL = STATUS_HOST ? `https://${STATUS_HOST}/status` : "";
 
 // Resolve site files from this script, so the page works at a subpath such as /sable-site/.
 const siteRoot = new URL("../", import.meta.url);
@@ -372,26 +373,30 @@ if (form && emailInput && status && fieldError && submitBtn && retryBtn) {
 
 const STATUS_OFFLINE = "Server: offline (multiplayer coming soon) · solo play available";
 const STATUS_COMPACT_OFFLINE = "Server: offline";
+const STATUS_SOON = "Server status: coming soon · solo play available";
+const STATUS_COMPACT_SOON = "Server: coming soon";
 
 function formatServerStatus(data) {
   if (data && data.online === true) {
     const count = data.players;
     const hasCount = typeof count === "number" && Number.isFinite(count) && count >= 0;
-    const noun = count === 1 ? "player" : "players";
+    const hasCap = typeof data.cap === "number" && Number.isFinite(data.cap) && data.cap > 0;
+    const shown = hasCount ? (hasCap ? `${count}/${data.cap}` : `${count}`) : "";
+    const noun = !hasCap && count === 1 ? "player" : "players";
     return {
       online: true,
-      full: hasCount ? `Server: Online · ${count} ${noun}` : "Server: Online",
-      compact: hasCount ? `Server: Online · ${count}` : "Server: Online",
+      full: hasCount ? `Server: Online · ${shown} ${noun}` : "Server: Online",
+      compact: hasCount ? `Server: Online · ${shown}` : "Server: Online",
     };
   }
   return { online: false, full: STATUS_OFFLINE, compact: STATUS_COMPACT_OFFLINE };
 }
 
 async function fetchServerStatus() {
-  if (!STATUS_URL) return formatServerStatus(null);
+  if (!STATUS_URL) return { online: false, full: STATUS_SOON, compact: STATUS_COMPACT_SOON };
 
   const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), 4000);
+  const timer = window.setTimeout(() => controller.abort(), 5000);
   try {
     const response = await fetch(STATUS_URL, { signal: controller.signal, cache: "no-store" });
     if (!response.ok) return formatServerStatus(null);
@@ -399,6 +404,8 @@ async function fetchServerStatus() {
     if (!data || typeof data !== "object" || typeof data.online !== "boolean") {
       return formatServerStatus(null);
     }
+    const age = Date.now() / 1000 - Number(data.updated);
+    if (!Number.isFinite(age) || age > 30) return formatServerStatus(null);
     return formatServerStatus(data);
   } catch (_) {
     return formatServerStatus(null);
@@ -422,7 +429,7 @@ async function refreshServerStatus() {
 
 function startServerStatus() {
   refreshServerStatus();
-  window.setInterval(refreshServerStatus, 60000);
+  window.setInterval(refreshServerStatus, 20000);
 }
 
 startServerStatus();
