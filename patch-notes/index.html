@@ -22,7 +22,7 @@
   <meta name="twitter:image" content="https://topsyftw.github.io/sable/assets/og_card.png" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0f10'/%3E%3Crect x='6' y='2' width='4' height='4' fill='%23e6c98a'/%3E%3Crect x='4' y='6' width='8' height='4' fill='%23e6c98a'/%3E%3Crect x='6' y='10' width='4' height='4' fill='%23e6c98a'/%3E%3C/svg%3E" />
   <link rel="preload" href="../assets/fonts/Alegreya-Variable.ttf" as="font" type="font/ttf" crossorigin />
-  <link rel="stylesheet" href="../css/site.css?v=2" />
+  <link rel="stylesheet" href="../css/site.css?v=3" />
 </head>
 <body>
   <a class="skip" href="#notes">Skip to content</a>
@@ -37,17 +37,26 @@
   <div class="vignette" aria-hidden="true"></div>
 
   <header class="constellation">
-    <nav aria-label="SABLE">
-      <ol>
-        <li><a href="../#top"><span class="star"></span><span>Sable</span></a></li>
-        <li><a href="../#world"><span class="star"></span><span>World</span></a></li>
-        <li><a href="../#scenes"><span class="star"></span><span>Scenes</span></a></li>
-        <li><a href="../#sky"><span class="star"></span><span>Sky</span></a></li>
-        <li><a href="../#pledge"><span class="star"></span><span>Free</span></a></li>
-        <li><a href="../#faq"><span class="star"></span><span>FAQ</span></a></li>
-        <li><a href="./" aria-current="page" class="is-you is-lit"><span class="star"></span><span>Patch Notes</span></a></li>
-      </ol>
-    </nav>
+    <div class="header-bar">
+      <nav aria-label="SABLE">
+        <ol>
+          <li><a href="../#top"><span class="star"></span><span>Sable</span></a></li>
+          <li><a href="../#world"><span class="star"></span><span>World</span></a></li>
+          <li><a href="../#scenes"><span class="star"></span><span>Scenes</span></a></li>
+          <li><a href="../#sky"><span class="star"></span><span>Sky</span></a></li>
+          <li><a href="../#pledge"><span class="star"></span><span>Free</span></a></li>
+          <li><a href="../#faq"><span class="star"></span><span>FAQ</span></a></li>
+          <li><a href="./" aria-current="page" class="is-you is-lit"><span class="star"></span><span>Patch Notes</span></a></li>
+        </ol>
+      </nav>
+      <div class="header-actions">
+        <p class="server-status server-status-compact" data-server-status="compact" role="status" aria-live="polite">
+          <span class="server-dot" aria-hidden="true"></span>
+          <span class="server-label">Server: offline</span>
+        </p>
+        <a class="cta cta-nav" href="https://playsable.github.io/">Play</a>
+      </div>
+    </div>
   </header>
 
   <main>
@@ -211,9 +220,13 @@
       <a href="./" aria-current="page">Patch Notes</a>
       <a href="https://www.instagram.com/sabledept/" target="_blank" rel="noopener">@sabledept on Instagram</a>
     </p>
+    <p class="server-status server-status-footer" data-server-status>
+      <span class="server-dot" aria-hidden="true"></span>
+      <span class="server-label">Server: offline (multiplayer coming soon) · solo play available</span>
+    </p>
     <p>© Sable Studios. Made in Godot.</p>
   </footer>
 
-  <script type="module" src="../js/site.js?v=3"></script>
+  <script type="module" src="../js/site.js?v=4"></script>
 </body>
 </html>

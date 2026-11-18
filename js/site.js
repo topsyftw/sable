@@ -1,5 +1,9 @@
 import { joinAlphaWaitlist } from "./waitlist.js";
 
+// Netcode will replace this with the live status endpoint.
+// Expected JSON: { "online": true, "players": 12 }
+const STATUS_URL = "";
+
 // Resolve site files from this script, so the page works at a subpath such as /sable-site/.
 const siteRoot = new URL("../", import.meta.url);
 function assetUrl(path) {
@@ -365,3 +369,60 @@ if (form && emailInput && status && fieldError && submitBtn && retryBtn) {
     retryBtn.focus();
   });
 }
+
+const STATUS_OFFLINE = "Server: offline (multiplayer coming soon) · solo play available";
+const STATUS_COMPACT_OFFLINE = "Server: offline";
+
+function formatServerStatus(data) {
+  if (data && data.online === true) {
+    const count = data.players;
+    const hasCount = typeof count === "number" && Number.isFinite(count) && count >= 0;
+    const noun = count === 1 ? "player" : "players";
+    return {
+      online: true,
+      full: hasCount ? `Server: Online · ${count} ${noun}` : "Server: Online",
+      compact: hasCount ? `Server: Online · ${count}` : "Server: Online",
+    };
+  }
+  return { online: false, full: STATUS_OFFLINE, compact: STATUS_COMPACT_OFFLINE };
+}
+
+async function fetchServerStatus() {
+  if (!STATUS_URL) return formatServerStatus(null);
+
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 4000);
+  try {
+    const response = await fetch(STATUS_URL, { signal: controller.signal, cache: "no-store" });
+    if (!response.ok) return formatServerStatus(null);
+    const data = await response.json();
+    if (!data || typeof data !== "object" || typeof data.online !== "boolean") {
+      return formatServerStatus(null);
+    }
+    return formatServerStatus(data);
+  } catch (_) {
+    return formatServerStatus(null);
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+function renderServerStatus(status) {
+  document.querySelectorAll("[data-server-status]").forEach((el) => {
+    const compact = el.getAttribute("data-server-status") === "compact";
+    const label = el.querySelector(".server-label");
+    if (label) label.textContent = compact ? status.compact : status.full;
+    el.dataset.state = status.online ? "online" : "offline";
+  });
+}
+
+async function refreshServerStatus() {
+  renderServerStatus(await fetchServerStatus());
+}
+
+function startServerStatus() {
+  refreshServerStatus();
+  window.setInterval(refreshServerStatus, 60000);
+}
+
+startServerStatus();
